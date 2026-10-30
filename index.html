@@ -1,1 +1,895 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Entrega Final - Green House Solutions</title>
+    
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            primary: '#1D1053',
+                            secondary: '#11E5B3',
+                        },
+                        bg: {
+                            dark: '#0B061A',
+                            darker: '#070412',
+                            card: '#160C3B'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
 
+    <!-- Custom CSS for specific features (Gantt, Modal, Hero) -->
+    <style>
+        body {
+            background-color: #070412;
+            color: #FFFFFF;
+        }
+
+        /* Hero Animation Background */
+        #hero-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+        }
+
+        .hero-content {
+            position: relative;
+            z-index: 10;
+        }
+
+        /* Image Zoom Modal */
+        #imageModal {
+            transition: opacity 0.3s ease;
+        }
+        
+        .zoomable-img {
+            cursor: zoom-in;
+            transition: transform 0.3s ease;
+        }
+        .zoomable-img:hover {
+            transform: scale(1.03);
+            box-shadow: 0 10px 25px rgba(17, 229, 179, 0.2);
+        }
+
+        /* 
+         * GANTT CHART CSS 
+         * (Adaptado para o tema escuro mantendo a estrutura solicitada)
+         */
+        :root {
+            --gantt-primary: #1D1053;
+            --gantt-secondary: #11E5B3;
+            --gantt-header-bg: #130A36;
+            --gantt-text-main: #E2E8F0;
+            --gantt-text-light: #94A3B8;
+            --gantt-bg-page: #0B061A;
+            --gantt-bg-container: #160C3B;
+            --gantt-border-color: #2D1B6B;
+            --gantt-cell-bg: #1A0F45;
+            --gantt-topic-bg: #10092B;
+        }
+
+        .gantt-container {
+            width: 100%;
+            background: var(--gantt-bg-container);
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+            border: 1px solid var(--gantt-border-color);
+        }
+
+        .gantt-chart {
+            display: grid;
+            grid-template-columns: 280px 1fr 1fr 1fr 1fr 1fr 1fr;
+            border: 1px solid var(--gantt-border-color);
+            border-radius: 8px;
+            overflow: hidden;
+            margin-bottom: 40px;
+        }
+
+        .gantt-header {
+            background-color: var(--gantt-header-bg);
+            color: #ffffff;
+            padding: 15px;
+            font-weight: bold;
+            text-align: center;
+            border-right: 1px solid var(--gantt-border-color);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        
+        .gantt-header:last-child { border-right: none; }
+        .gantt-header.topic { text-align: left; }
+
+        .gantt-cell {
+            padding: 10px;
+            border-bottom: 1px solid var(--gantt-border-color);
+            border-right: 1px solid var(--gantt-border-color);
+            display: flex;
+            align-items: center;
+            min-height: 60px;
+            background-color: var(--gantt-cell-bg);
+        }
+        
+        .gantt-cell:nth-child(7n) { border-right: none; }
+
+        .topic-cell {
+            font-weight: 600;
+            color: var(--gantt-text-main);
+            background-color: var(--gantt-topic-bg);
+            font-size: 0.95rem;
+        }
+
+        .gantt-bar {
+            background-color: var(--gantt-secondary);
+            height: 36px;
+            width: 100%;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 8px rgba(17, 229, 179, 0.2);
+        }
+
+        .gantt-bar:hover {
+            transform: scale(1.02);
+            box-shadow: 0 4px 12px rgba(17, 229, 179, 0.4);
+            background-color: #0ec499; 
+        }
+
+        .gantt-modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: rgba(0, 0, 0, 0.85);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            backdrop-filter: blur(4px);
+        }
+
+        .gantt-modal-content {
+            background-color: var(--gantt-bg-container);
+            padding: 30px;
+            border-radius: 12px;
+            max-width: 600px;
+            width: 100%;
+            position: relative;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+            border: 1px solid var(--gantt-border-color);
+            animation: modalFadeIn 0.3s ease;
+        }
+
+        @keyframes modalFadeIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .gantt-close-btn {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            font-size: 28px;
+            cursor: pointer;
+            color: var(--gantt-text-light);
+            transition: color 0.2s;
+        }
+
+        .gantt-close-btn:hover { color: var(--gantt-secondary); }
+
+        .gantt-modal-title {
+            color: var(--gantt-secondary);
+            margin-bottom: 15px;
+            padding-right: 30px;
+            text-align: left;
+            border-bottom: 2px solid var(--gantt-primary);
+            display: inline-block;
+            padding-bottom: 5px;
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+
+        .gantt-modal-desc {
+            color: var(--gantt-text-main);
+            line-height: 1.6;
+            font-size: 1.05rem;
+            margin-top: 10px;
+        }
+
+        .gantt-modal-meta {
+            margin-top: 20px;
+            padding-top: 15px;
+            border-top: 1px solid var(--gantt-border-color);
+            font-size: 0.95rem;
+            color: var(--gantt-secondary);
+            font-weight: bold;
+        }
+
+        .summary-section {
+            margin-top: 50px;
+            padding-top: 40px;
+            border-top: 2px dashed var(--gantt-border-color);
+        }
+
+        .summary-title {
+            text-align: center;
+            color: var(--gantt-secondary);
+            margin-bottom: 40px;
+            font-size: 1.8rem;
+            font-weight: bold;
+        }
+
+        .service-cards-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+        }
+
+        .service-card {
+            background: var(--gantt-bg-container);
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            border: 1px solid var(--gantt-border-color);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .card-header {
+            padding: 30px 20px;
+            text-align: center;
+            border-bottom: 2px solid var(--gantt-secondary);
+            background: var(--gantt-topic-bg);
+        }
+
+        .card-header h3 {
+            margin: 0;
+            font-size: 1.6rem;
+            color: #FFFFFF;
+            font-weight: bold;
+        }
+
+        .card-body {
+            padding: 30px;
+            flex-grow: 1;
+            background-color: var(--gantt-bg-container);
+        }
+
+        .service-item {
+            display: flex;
+            align-items: center;
+            padding: 16px 20px;
+            margin-bottom: 15px;
+            background: var(--gantt-topic-bg);
+            border-radius: 10px;
+            border-left: 5px solid var(--gantt-secondary);
+            font-weight: 600;
+            color: var(--gantt-text-main);
+        }
+
+        .service-icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+            background: var(--gantt-primary);
+            color: var(--gantt-secondary);
+            border-radius: 50%;
+            margin-right: 15px;
+            flex-shrink: 0;
+        }
+
+        @media (max-width: 900px) {
+            .gantt-chart { grid-template-columns: 150px 1fr 1fr 1fr 1fr 1fr 1fr; }
+            .gantt-header { font-size: 0.75rem; padding: 10px 5px; }
+            .topic-cell { font-size: 0.85rem; }
+            .service-cards-container { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body class="antialiased overflow-x-hidden pt-20">
+
+    <!-- HEADER FIXO -->
+    <header class="fixed top-0 w-full z-50 bg-brand-primary shadow-[0_4px_20px_rgba(0,0,0,0.5)] h-20">
+        <div class="container mx-auto px-6 h-full flex items-center justify-between">
+            <!-- Esquerda (Espaçador para centralizar a logo do cliente) -->
+            <div class="w-1/3"></div>
+            
+            <!-- Centro (Logo do Cliente) -->
+            <div class="w-1/3 flex justify-center">
+                <img src="https://ghbio.com.br/wp-content/uploads/2025/01/logo.svg" alt="Green House Solutions" class="h-12 object-contain">
+            </div>
+            
+            <!-- Direita (Logo V4) -->
+            <div class="w-1/3 flex justify-end">
+                <img src="https://i.imgur.com/jmzaox0.png" alt="V4 Silva Anchieta & Co" class="h-10 object-contain brightness-0 invert">
+            </div>
+        </div>
+    </header>
+
+    <!-- 1. HERO SECTION COM ANIMAÇÃO -->
+    <section class="relative w-full h-[calc(100vh-80px)] min-h-[500px] flex items-center justify-center overflow-hidden bg-brand-primary">
+        <!-- Canvas da animação -->
+        <canvas id="hero-canvas"></canvas>
+        
+        <!-- Conteúdo do Hero -->
+        <div class="hero-content text-center px-4 max-w-4xl mx-auto">
+            <h2 class="text-brand-secondary font-bold tracking-widest uppercase text-lg md:text-2xl mb-4">
+                Entrega Final
+            </h2>
+            <h1 class="text-white font-extrabold text-4xl md:text-6xl leading-tight drop-shadow-lg">
+                Diagnóstico e Planejamento de Marketing e Vendas
+            </h1>
+        </div>
+    </section>
+
+    <!-- 2. ETAPAS DE ESTUDO (Linha do tempo) -->
+    <section class="py-20 bg-bg-darker border-b border-gray-800">
+        <div class="container mx-auto px-6 max-w-5xl">
+            <div class="text-center mb-16">
+                <h2 class="text-3xl md:text-4xl font-bold text-white mb-4">Etapas de Estudo Desse Projeto</h2>
+                <div class="w-24 h-1 bg-brand-secondary mx-auto rounded-full"></div>
+            </div>
+
+            <div class="relative border-l-2 border-gray-700 ml-4 md:ml-10 space-y-12 py-4">
+                
+                <!-- Semana 1 -->
+                <div class="relative pl-8 md:pl-12">
+                    <div class="absolute -left-2.5 top-1 h-5 w-5 rounded-full bg-gray-600 border-4 border-bg-darker"></div>
+                    <h3 class="text-xl font-semibold text-gray-300">Semana 1: Kick-Off e Oferta Principal</h3>
+                </div>
+
+                <!-- Semana 2 -->
+                <div class="relative pl-8 md:pl-12">
+                    <div class="absolute -left-2.5 top-1 h-5 w-5 rounded-full bg-gray-600 border-4 border-bg-darker"></div>
+                    <h3 class="text-xl font-semibold text-gray-300">Semana 2: Pesquisa de Mercado & Posicionamento</h3>
+                </div>
+
+                <!-- Semana 3 -->
+                <div class="relative pl-8 md:pl-12">
+                    <div class="absolute -left-2.5 top-1 h-5 w-5 rounded-full bg-gray-600 border-4 border-bg-darker"></div>
+                    <h3 class="text-xl font-semibold text-gray-300">Semana 3: Diagnóstico de Marketing</h3>
+                </div>
+
+                <!-- Semana 4 & 5 (DESTAQUE) -->
+                <div class="relative pl-8 md:pl-12">
+                    <div class="absolute -left-3.5 top-0 h-7 w-7 rounded-full bg-brand-secondary shadow-[0_0_20px_#11E5B3]"></div>
+                    <h3 class="text-2xl md:text-3xl font-extrabold text-brand-secondary">
+                        Semana 4 & 5: Plano de Marketing e Vendas
+                    </h3>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 3. NOSSO NORTE -->
+    <section class="py-20 bg-bg-dark relative overflow-hidden">
+        <!-- Decoração de fundo -->
+        <div class="absolute top-0 right-0 w-64 h-64 bg-brand-secondary opacity-5 rounded-full blur-3xl"></div>
+        <div class="absolute bottom-0 left-0 w-64 h-64 bg-brand-primary opacity-20 rounded-full blur-3xl"></div>
+        
+        <div class="container mx-auto px-6 max-w-4xl relative z-10 text-center">
+            <h2 class="text-brand-secondary font-bold text-xl uppercase tracking-widest mb-6">Nosso Norte</h2>
+            <p class="text-gray-400 text-lg mb-8">Qual o principal objetivo que deseja alcançar com a V4 Company?</p>
+            
+            <div class="bg-bg-card border-l-4 border-brand-secondary p-8 md:p-12 rounded-r-xl shadow-2xl">
+                <p class="text-xl md:text-2xl font-medium leading-relaxed text-white">
+                    Estruturar a oferta comercial e o posicionamento de marketing da Greenhouse para impulsionar as vendas diretas ao produtor sem intermediadores e expandir a atuação nas culturas de tomat, reduzindo a sazonalidade das vendas do 1º semestre
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- 4. 2ª SEMANA - PESQUISA DE MERCADO -->
+    <section class="py-20 bg-brand-primary">
+        <div class="container mx-auto px-6 max-w-6xl">
+            <div class="text-center mb-16">
+                <h2 class="text-3xl md:text-4xl font-bold text-white mb-4">2ª semana - Pesquisa de Mercado & Posicionamento</h2>
+                <div class="w-24 h-1 bg-brand-secondary mx-auto rounded-full"></div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
+                <!-- Fato 1 -->
+                <div class="flex flex-col h-full bg-bg-card rounded-xl p-6 shadow-lg border border-[#2D1B6B]">
+                    <div class="mb-4">
+                        <span class="inline-block bg-gray-800 text-gray-300 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wide mb-2">Fato 1</span>
+                        <h3 class="text-xl font-bold text-white mb-2">Sazonalidade no Primeiro Semestre</h3>
+                        <p class="text-gray-400 text-sm">Concentração na soja gera um vale de caixa nos primeiro semestre.</p>
+                    </div>
+                    <div class="flex-grow flex items-center justify-center py-4">
+                        <svg class="w-8 h-8 text-brand-secondary animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path></svg>
+                    </div>
+                    <div class="bg-bg-darker p-4 rounded-lg border-t-2 border-brand-secondary mt-auto">
+                        <span class="block text-brand-secondary font-bold text-xs uppercase mb-2">Plano de Ação</span>
+                        <p class="text-gray-200 text-sm">Executar estratégia ABM para tomate inicialmente, capturando o alto valor no primeiro semestre para mitigar a sazonalidade e equilibrar a receita anual.</p>
+                    </div>
+                </div>
+
+                <!-- Fato 2 -->
+                <div class="flex flex-col h-full bg-bg-card rounded-xl p-6 shadow-lg border border-[#2D1B6B]">
+                    <div class="mb-4">
+                        <span class="inline-block bg-gray-800 text-gray-300 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wide mb-2">Fato 2</span>
+                        <h3 class="text-xl font-bold text-white mb-2">Força de Vendas Desconectada da Aquisição</h3>
+                        <p class="text-gray-400 text-sm">Equipe comercial acomodada atende apenas a carteira antiga, sem rotina de atração de novas contas.</p>
+                    </div>
+                    <div class="flex-grow flex items-center justify-center py-4">
+                        <svg class="w-8 h-8 text-brand-secondary animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path></svg>
+                    </div>
+                    <div class="bg-bg-darker p-4 rounded-lg border-t-2 border-brand-secondary mt-auto">
+                        <span class="block text-brand-secondary font-bold text-xs uppercase mb-2">Plano de Ação</span>
+                        <p class="text-gray-200 text-sm">Inverter a matriz comercial criando funis de inbound marketing para gerar novos contatos direto ao produtor rural para assumir o controle da aquisição. Implementar landing page com formulário dinâmico para o WhatsApp dos RTVs regionais, acelerando o agendamento e a visita técnica.</p>
+                    </div>
+                </div>
+
+                <!-- Fato 3 -->
+                <div class="flex flex-col h-full bg-bg-card rounded-xl p-6 shadow-lg border border-[#2D1B6B]">
+                    <div class="mb-4">
+                        <span class="inline-block bg-gray-800 text-gray-300 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wide mb-2">Fato 3</span>
+                        <h3 class="text-xl font-bold text-white mb-2">Oferta Genérica Centrada em Preço</h3>
+                        <p class="text-gray-400 text-sm">Divulgação de catálogo gera objeção de custo e esconde diferenciais técnicos de rentabilidade.</p>
+                    </div>
+                    <div class="flex-grow flex items-center justify-center py-4">
+                        <svg class="w-8 h-8 text-brand-secondary animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path></svg>
+                    </div>
+                    <div class="bg-bg-darker p-4 rounded-lg border-t-2 border-brand-secondary mt-auto">
+                        <span class="block text-brand-secondary font-bold text-xs uppercase mb-2">Plano de Ação</span>
+                        <p class="text-gray-200 text-sm">Reposicionar a oferta focando em ROI, destacando tecnologia multifuncional importada, mitigação climática e a taxa de 95% de eficácia nos testes lado a lado no campo.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="text-center mt-12">
+                <a href="https://orssoluan.github.io/greenhouse/pesquisa.html" target="_self" class="inline-flex items-center justify-center px-8 py-4 text-brand-primary font-bold bg-brand-secondary hover:bg-[#0ec499] rounded-lg transition-colors duration-300 shadow-[0_4px_15px_rgba(17,229,179,0.3)]">
+                    Clique para acessar o material
+                    <svg class="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- 5. 3ª SEMANA - DIAGNÓSTICO DE MARKETING -->
+    <section class="py-20 bg-bg-darker">
+        <div class="container mx-auto px-6 max-w-5xl">
+            <div class="text-center mb-16">
+                <h2 class="text-3xl md:text-4xl font-bold text-white mb-4">3ª semana - Diagnóstico Marketing</h2>
+                <div class="w-24 h-1 bg-brand-secondary mx-auto rounded-full"></div>
+            </div>
+
+            <div class="space-y-4 mb-12">
+                <!-- Planos de ação list -->
+                <div class="flex items-start bg-bg-card p-5 rounded-lg border border-gray-800 hover:border-brand-secondary transition-colors">
+                    <svg class="w-6 h-6 text-brand-secondary mt-1 flex-shrink-0 mr-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                    <p class="text-gray-200"><strong class="text-white">Plano de Ação:</strong> Criar subdomínio "lp.ghbio.com.br" e estrutura página focada na cultura do tomate, destacando a autoridade técnica de 15 anos do fundador Mateus Maia e 6 vídeos de depoimentos.</p>
+                </div>
+                <div class="flex items-start bg-bg-card p-5 rounded-lg border border-gray-800 hover:border-brand-secondary transition-colors">
+                    <svg class="w-6 h-6 text-brand-secondary mt-1 flex-shrink-0 mr-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                    <p class="text-gray-200"><strong class="text-white">Plano de Ação:</strong> Instalar Google Tag Manager e Meta Pixel para remarketing da Jornada dos tomaticultores que acessaram a landing page.</p>
+                </div>
+                <div class="flex items-start bg-bg-card p-5 rounded-lg border border-gray-800 hover:border-brand-secondary transition-colors">
+                    <svg class="w-6 h-6 text-brand-secondary mt-1 flex-shrink-0 mr-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                    <p class="text-gray-200"><strong class="text-white">Plano de Ação:</strong> Padronizar criativos no Meta Ads e Google Ads combinando fotografia real da cultura no fundo, produto em destaque e gancho direto ao produtor rural.</p>
+                </div>
+                <div class="flex items-start bg-bg-card p-5 rounded-lg border border-gray-800 hover:border-brand-secondary transition-colors">
+                    <svg class="w-6 h-6 text-brand-secondary mt-1 flex-shrink-0 mr-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                    <p class="text-gray-200"><strong class="text-white">Plano de Ação:</strong> Investir em campanhas de Google Search focadas no termo "fertilizante para tomate", que cresce 22% ao ano, capturando demanda ativa em GO, SP e PR.</p>
+                </div>
+                <div class="flex items-start bg-bg-card p-5 rounded-lg border border-gray-800 hover:border-brand-secondary transition-colors">
+                    <svg class="w-6 h-6 text-brand-secondary mt-1 flex-shrink-0 mr-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                    <p class="text-gray-200"><strong class="text-white">Plano de Ação:</strong> Migrar o domínio institucional para a extensão "greenhouse.agr.br", eliminando a confusão da sigla GHB e aumentando a autoridade, legitimidade e segurança no agro.</p>
+                </div>
+                <div class="flex items-start bg-bg-card p-5 rounded-lg border border-gray-800 hover:border-brand-secondary transition-colors">
+                    <svg class="w-6 h-6 text-brand-secondary mt-1 flex-shrink-0 mr-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                    <p class="text-gray-200"><strong class="text-white">Plano de Ação:</strong> Redesign do site para inserir sessão de navegação por culturas no topbar superior do site, permitindo acesso direto do produtor às soluções para Tomate, Melão e outras, também para indexar novas páginas no Google e melhorar SEO.</p>
+                </div>
+                <div class="flex items-start bg-bg-card p-5 rounded-lg border border-gray-800 hover:border-brand-secondary transition-colors">
+                    <svg class="w-6 h-6 text-brand-secondary mt-1 flex-shrink-0 mr-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                    <p class="text-gray-200"><strong class="text-white">Plano de Ação:</strong> Substituir o formulário estático por formulário estilo typeform em etapas, encaminhando na sequência para Whatsapp.</p>
+                </div>
+            </div>
+
+            <div class="text-center mt-12">
+                <a href="https://orssoluan.github.io/greenhouse/marketing.html" target="_self" class="inline-flex items-center justify-center px-8 py-4 text-brand-primary font-bold bg-brand-secondary hover:bg-[#0ec499] rounded-lg transition-colors duration-300 shadow-[0_4px_15px_rgba(17,229,179,0.3)]">
+                    Clique para acessar o material
+                    <svg class="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- 6. ARTEFATOS PARA EXECUÇÃO -->
+    <section class="py-20 bg-bg-dark">
+        <div class="container mx-auto px-6 max-w-7xl">
+            <div class="text-center mb-16">
+                <h2 class="text-3xl md:text-4xl font-bold text-white mb-4">Artefatos para execução</h2>
+                <div class="w-24 h-1 bg-brand-secondary mx-auto rounded-full"></div>
+            </div>
+
+            <!-- Bloco de 4 Contêineres -->
+            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-8">
+                
+                <!-- Artefato 1 -->
+                <div class="bg-bg-card rounded-xl overflow-hidden shadow-lg border border-gray-800 flex flex-col">
+                    <div class="h-48 overflow-hidden bg-gray-900 flex items-center justify-center p-4">
+                        <img src="https://i.imgur.com/6goEGIl.png" alt="Manual de Identidade Visual" class="w-full h-full object-contain">
+                    </div>
+                    <div class="p-6 flex-grow flex flex-col justify-between text-center">
+                        <h3 class="text-lg font-bold text-white mb-6">Manual de Identidade Visual</h3>
+                        <a href="https://drive.google.com/file/d/1WttugDPDlEEN9gOg5GeuB8EhDD_Rz16s/view" target="_blank" class="w-full py-3 text-sm font-bold text-brand-primary bg-brand-secondary hover:bg-[#0ec499] rounded transition-colors block">
+                            Baixar o material
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Artefato 2 -->
+                <div class="bg-bg-card rounded-xl overflow-hidden shadow-lg border border-gray-800 flex flex-col">
+                    <div class="h-48 overflow-hidden bg-gray-900 flex items-center justify-center p-4">
+                        <img src="https://i.imgur.com/SxTLK5r.png" alt="Criativos para anúncio" class="w-full h-full object-contain">
+                    </div>
+                    <div class="p-6 flex-grow flex flex-col justify-between text-center">
+                        <h3 class="text-lg font-bold text-white mb-6">Criativos para anúncio</h3>
+                        <a href="https://drive.google.com/drive/folders/1YG_higtdNp4iMglev-Wp_uLLxFvYYiCU" target="_blank" class="w-full py-3 text-sm font-bold text-brand-primary bg-brand-secondary hover:bg-[#0ec499] rounded transition-colors block">
+                            Baixar o material
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Artefato 3 -->
+                <div class="bg-bg-card rounded-xl overflow-hidden shadow-lg border border-gray-800 flex flex-col">
+                    <div class="h-48 overflow-hidden bg-gray-900 flex items-center justify-center p-4">
+                        <img src="https://i.imgur.com/aDZzMoL.png" alt="Landing Page" class="w-full h-full object-contain">
+                    </div>
+                    <div class="p-6 flex-grow flex flex-col justify-between text-center">
+                        <h3 class="text-lg font-bold text-white mb-6">Landing Page</h3>
+                        <a href="https://greenhousebio.netlify.app/" target="_blank" class="w-full py-3 text-sm font-bold text-brand-primary bg-brand-secondary hover:bg-[#0ec499] rounded transition-colors block">
+                            Baixar o material
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Artefato 4 (Roteiro com zoom) -->
+                <div class="bg-bg-card rounded-xl overflow-hidden shadow-lg border border-gray-800 flex flex-col relative group">
+                    <div class="h-48 overflow-hidden bg-gray-900 flex items-center justify-center p-4">
+                        <img src="https://i.imgur.com/BqgTqHX.jpg" alt="Roteiro" class="w-full h-full object-cover zoomable-img" onclick="openImageModal(this.src)">
+                    </div>
+                    <!-- Overlay hint -->
+                    <div class="absolute top-2 right-2 bg-black bg-opacity-70 text-brand-secondary text-xs px-2 py-1 rounded pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity">
+                        Clique para ampliar
+                    </div>
+                    <div class="p-6 flex-grow flex flex-col justify-start text-center border-t border-gray-800">
+                        <h3 class="text-lg font-bold text-white">Roteiro</h3>
+                        <p class="text-xs text-gray-500 mt-2">Clique na imagem para ampliar</p>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <!-- Modal para Zoom de Imagem -->
+    <div id="imageModal" class="fixed inset-0 z-[100] bg-black bg-opacity-90 hidden items-center justify-center p-4 backdrop-blur-sm" onclick="closeImageModal()">
+        <button class="absolute top-6 right-6 text-white hover:text-brand-secondary text-4xl font-light" onclick="closeImageModal()">&times;</button>
+        <img id="modalImage" src="" alt="Imagem Ampliada" class="max-w-full max-h-[90vh] object-contain shadow-2xl rounded" onclick="event.stopPropagation()">
+    </div>
+
+    <!-- 7. FORECAST / PROJEÇÃO -->
+    <section class="py-20 bg-brand-primary">
+        <div class="container mx-auto px-6 max-w-4xl text-center">
+            <h2 class="text-3xl md:text-4xl font-bold text-white mb-10">FORECAST / PROJEÇÃO</h2>
+            
+            <div class="bg-bg-card rounded-xl p-4 shadow-2xl mb-8 border border-gray-700">
+                <img src="https://i.imgur.com/hSWMVk9.png" alt="Forecast Projeção" class="w-full h-auto rounded-lg">
+            </div>
+
+            <p class="text-lg text-gray-300 bg-bg-darker p-6 rounded-lg border-l-4 border-brand-secondary inline-block">
+                Não se aplica nesse momento, pois, não temos histórico de campanhas ativas, a curva de conversão é longa e dependemos da janela de cada cultura.
+            </p>
+        </div>
+    </section>
+
+    <!-- 8. CALENDÁRIO ESTRATÉGICO (HTML fornecido adaptado para o tema escuro) -->
+    <section class="py-20 bg-bg-darker">
+        <div class="container mx-auto px-6 max-w-7xl">
+            <div class="text-center mb-16">
+                <h2 class="text-3xl md:text-4xl font-bold text-white mb-4">Calendário Estratégico para os próximos 6 meses</h2>
+                <div class="w-24 h-1 bg-brand-secondary mx-auto rounded-full"></div>
+            </div>
+
+            <!-- INÍCIO DO CÓDIGO GANTT ADAPTADO -->
+            <div class="gantt-container mx-auto">
+                <div class="gantt-chart">
+                    <div class="gantt-header topic">Ação / Tópico</div>
+                    <div class="gantt-header">Novembro<br><small class="text-gray-400 font-normal">2026</small></div>
+                    <div class="gantt-header">Dezembro<br><small class="text-gray-400 font-normal">2026</small></div>
+                    <div class="gantt-header">Janeiro<br><small class="text-gray-400 font-normal">2027</small></div>
+                    <div class="gantt-header">Fevereiro<br><small class="text-gray-400 font-normal">2027</small></div>
+                    <div class="gantt-header">Março<br><small class="text-gray-400 font-normal">2027</small></div>
+                    <div class="gantt-header">Abril<br><small class="text-gray-400 font-normal">2027</small></div>
+
+                    <!-- Mês 1: Novembro 2026 -->
+                    <div class="gantt-cell topic-cell">Publicar landing page</div>
+                    <div class="gantt-cell"><div class="gantt-bar" onclick="openGanttModal('Publicar landing page', 'Publicação da landing page que a V4 criou e utiliza-lá no tráfego pago.', 'Novembro 2026')"></div></div>
+                    <div class="gantt-cell"></div><div class="gantt-cell"></div><div class="gantt-cell"></div><div class="gantt-cell"></div><div class="gantt-cell"></div>
+
+                    <div class="gantt-cell topic-cell">Setup de rastreamento</div>
+                    <div class="gantt-cell"><div class="gantt-bar" onclick="openGanttModal('Setup de rastreamento', 'A execução será feita através de configuração do Google Tag Manager, Meta Pixel, consentimento aplicável, parâmetros de campanha e eventos de formulário e encaminhamento ao WhatsApp.', 'Novembro 2026')"></div></div>
+                    <div class="gantt-cell"></div><div class="gantt-cell"></div><div class="gantt-cell"></div><div class="gantt-cell"></div><div class="gantt-cell"></div>
+
+                    <div class="gantt-cell topic-cell">Produzir criativos para anúncios</div>
+                    <div class="gantt-cell"><div class="gantt-bar" onclick="openGanttModal('Produzir criativos para anúncios', 'Recomenda-se utilizar copywriting e design disponíveis, contratando apoio somente se houver lacuna, para preparar anúncios. A execução será feita através de peças de design com fotografias reais do tomateiro, produto em destaque, frases curtas e chamada para receber um consultor. A entrega será um conjunto aprovado de peças para Meta Ads e anúncios responsivos de pesquisa.', 'Novembro 2026')"></div></div>
+                    <div class="gantt-cell"></div><div class="gantt-cell"></div><div class="gantt-cell"></div><div class="gantt-cell"></div><div class="gantt-cell"></div>
+
+                    <div class="gantt-cell topic-cell">Iniciar mídia paga</div>
+                    <div class="gantt-cell"><div class="gantt-bar" onclick="openGanttModal('Iniciar mídia paga', 'A execução será feita através de Google Search regionalizado, testes com “fertilizante para tomate”, termos negativos e campanhas Meta compatíveis com a capacidade dos RTVs de acordo com o roadmap que a V4 montou.', 'Novembro 2026')"></div></div>
+                    <div class="gantt-cell"></div><div class="gantt-cell"></div><div class="gantt-cell"></div><div class="gantt-cell"></div><div class="gantt-cell"></div>
+
+                    <!-- Mês 3: Dezembro 2026 - Janeiro 2027 -->
+                    <div class="gantt-cell topic-cell">Adequar site institucional</div>
+                    <div class="gantt-cell"></div>
+                    <div class="gantt-cell" style="grid-column: span 2;">
+                        <div class="gantt-bar" onclick="openGanttModal('Adequar site institucional', 'Recomenda-se utilizar manutenção e SEO, em fevereiro, para executar somente as alterações aprovadas na arquitetura digital. A execução será feita através da adição de sessões de navegação superior por culturas, páginas específicas para tomate e melão quando houver conteúdo validado e, se justificada, migração para greenhouse.agr.br com redirecionamentos, certificados e atualização dos links. A entrega será um site testado, com formulários funcionais e verificação de indexação, preservando páginas e estruturas adequadas.', 'Dezembro 2026 - Janeiro 2027')"></div>
+                    </div>
+                    <div class="gantt-cell"></div><div class="gantt-cell"></div><div class="gantt-cell"></div>
+
+                    <!-- Mês 4: Fevereiro 2027 -->
+                    <div class="gantt-cell topic-cell">Otimizar conversão</div>
+                    <div class="gantt-cell"></div><div class="gantt-cell"></div><div class="gantt-cell"></div>
+                    <div class="gantt-cell"><div class="gantt-bar" onclick="openGanttModal('Otimizar conversão', 'A execução será feita através de análise por região, revisão dos termos pesquisados, testes de formulário, mensagem e chamada para visita, além de remarketing quando houver público elegível. A entrega será um registro das hipóteses testadas e seus resultados em contatos qualificados, visitas realizadas e oportunidades, sem aumento direto de verba.', 'Fevereiro 2027')"></div></div>
+                    <div class="gantt-cell"></div><div class="gantt-cell"></div>
+
+                    <!-- Mês 5: Março 2027 -->
+                    <div class="gantt-cell topic-cell">Consolidar provas comerciais</div>
+                    <div class="gantt-cell"></div><div class="gantt-cell"></div><div class="gantt-cell"></div><div class="gantt-cell"></div>
+                    <div class="gantt-cell"><div class="gantt-bar" onclick="openGanttModal('Consolidar provas comerciais', 'Recomenda-se utilizar RTVs e responsável por dados, em abril, para consolidar evidências dos testes concluídos e qualificar o argumento de retorno. A execução será feita através de comparação entre manejos em condições documentadas, registrando produção comercial, classificação, receita e custos disponíveis.', 'Março 2027')"></div></div>
+                    <div class="gantt-cell"></div>
+
+                    <!-- Mês 6: Abril 2027 -->
+                    <div class="gantt-cell topic-cell">Replanejar próximo ciclo</div>
+                    <div class="gantt-cell"></div><div class="gantt-cell"></div><div class="gantt-cell"></div><div class="gantt-cell"></div><div class="gantt-cell"></div>
+                    <div class="gantt-cell"><div class="gantt-bar" onclick="openGanttModal('Replanejar próximo ciclo', 'Recomenda-se utilizar a liderança e os responsáveis pela operação, em abril, para consolidar os seis meses e revisar a estratégia anual de receita. A execução será feita através de análise do funil, vendas por origem, carteira ABM, sazonalidade, custos e capacidade dos RTVs, distinguindo resultados observados de hipóteses. A entrega será um plano subsequente com orçamento condicionado, prioridades por cultura e decisões justificadas sobre manter recursos, otimizar estruturas ou contratar serviços adicionais.', 'Abril 2027')"></div></div>
+                </div>
+
+                <div class="summary-section">
+                    <h2 class="summary-title">Resumo de Serviços Recomendados</h2>
+                    <div class="service-cards-container">
+                        <div class="service-card">
+                            <div class="card-header">
+                                <h3>Categoria TER</h3>
+                            </div>
+                            <div class="card-body">
+                                <div class="service-item">
+                                    <div class="service-icon">
+                                        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
+                                    </div>
+                                    Adequação do site
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="service-card">
+                            <div class="card-header">
+                                <h3>Categoria EXECUTAR</h3>
+                            </div>
+                            <div class="card-body">
+                                <div class="service-item">
+                                    <div class="service-icon">
+                                        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+                                    </div>
+                                    Combo Performance - Inside Sales
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal do Gantt -->
+            <div class="gantt-modal-overlay" id="actionModal" onclick="closeGanttModal(event)">
+                <div class="gantt-modal-content" onclick="event.stopPropagation()">
+                    <span class="gantt-close-btn" onclick="forceCloseGanttModal()">&times;</span>
+                    <h2 class="gantt-modal-title" id="modalTitle">Título da Ação</h2>
+                    <div class="gantt-modal-desc" id="modalDesc">Descrição da ação...</div>
+                    <div class="gantt-modal-meta" id="modalMeta">Período: </div>
+                </div>
+            </div>
+            <!-- FIM DO CÓDIGO GANTT -->
+
+        </div>
+    </section>
+
+    <!-- 9. ACESSO AOS MATERIAIS & OBRIGADO -->
+    <section class="py-24 bg-bg-dark relative overflow-hidden">
+        <div class="container mx-auto px-6 max-w-4xl text-center relative z-10">
+            <h3 class="text-2xl font-semibold text-white mb-6">Acesse aqui as gravações, apresentaçães e materiais gráficos desta consultoria:</h3>
+            <a href="https://drive.google.com/drive/folders/1YYFwkstJNhQxLJTt_DFG4f-8d7yuKcRt" target="_self" class="inline-flex items-center justify-center px-8 py-4 text-brand-primary font-bold bg-brand-secondary hover:bg-[#0ec499] rounded-lg transition-colors duration-300 mb-20 shadow-[0_4px_15px_rgba(17,229,179,0.3)]">
+                Clique para acessar
+            </a>
+            
+            <div class="mt-16">
+                <h2 class="text-4xl md:text-5xl lg:text-7xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-brand-secondary to-white mb-4">
+                    OBRIGADO POR
+                </h2>
+                <h2 class="text-2xl md:text-3xl lg:text-4xl font-bold text-gray-400">
+                    ABRIR AS PORTAS PARA A V4 COMPANY
+                </h2>
+            </div>
+        </div>
+    </section>
+
+    <!-- 10. RODAPÉ -->
+    <footer class="bg-[#E50914] py-8">
+        <div class="container mx-auto px-6 flex flex-col md:flex-row items-center justify-center gap-4">
+            <span class="text-white font-bold text-lg">Produzido por:</span>
+            <img src="https://i.imgur.com/SU08Zb0.png" alt="Logo V4" class="h-10 object-contain filter drop-shadow-md">
+        </div>
+    </footer>
+
+    <!-- SCRIPTS (Animação Canvas, Modal de Imagem e Modal do Gantt) -->
+    <script>
+        /* =========================================
+           1. ANIMAÇÃO DE REDE NO FUNDO (HERO)
+           ========================================= */
+        const coresDasBolinhas = ['#11E5B3']; 
+        const corDasLinhas = '#11E5B3'; 
+
+        const canvas = document.getElementById('hero-canvas');
+        const ctx = canvas.getContext('2d');
+        let width, height;
+        let particles = [];
+        
+        function resize() {
+            width = canvas.width = canvas.parentElement.clientWidth;
+            height = canvas.height = canvas.parentElement.clientHeight;
+        }
+        
+        class Particle {
+            constructor() {
+                this.x = Math.random() * width;
+                this.y = Math.random() * height;
+                this.vx = (Math.random() - 0.5) * 1.5;
+                this.vy = (Math.random() - 0.5) * 1.5;
+                this.size = Math.random() * 3 + 1;
+                this.color = coresDasBolinhas[Math.floor(Math.random() * coresDasBolinhas.length)];
+                this.alpha = Math.random() * 0.5 + 0.1;
+            }
+            
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+                
+                if (this.x < 0 || this.x > width) this.vx *= -1;
+                if (this.y < 0 || this.y > height) this.vy *= -1;
+            }
+            
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fillStyle = this.color;
+                ctx.globalAlpha = this.alpha;
+                ctx.fill();
+            }
+        }
+        
+        function initCanvas() {
+            particles = [];
+            const particleCount = width > 768 ? 120 : 50; 
+            for (let i = 0; i < particleCount; i++) {
+                particles.push(new Particle());
+            }
+        }
+        
+        function animateCanvas() {
+            ctx.clearRect(0, 0, width, height);
+            
+            particles.forEach((p, index) => {
+                p.update();
+                p.draw();
+                
+                for (let j = index + 1; j < particles.length; j++) {
+                    const p2 = particles[j];
+                    const dx = p.x - p2.x;
+                    const dy = p.y - p2.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    
+                    if (distance < 150) {
+                        ctx.beginPath();
+                        ctx.strokeStyle = corDasLinhas;
+                        ctx.globalAlpha = 1 - (distance / 150);
+                        ctx.lineWidth = 0.5;
+                        ctx.moveTo(p.x, p.y);
+                        ctx.lineTo(p2.x, p2.y);
+                        ctx.stroke();
+                    }
+                }
+            });
+            requestAnimationFrame(animateCanvas);
+        }
+        
+        window.addEventListener('resize', () => {
+            resize();
+            initCanvas();
+        });
+        
+        // Inicializa o canvas ao carregar a página
+        window.addEventListener('load', () => {
+            resize();
+            initCanvas();
+            animateCanvas();
+        });
+
+        /* =========================================
+           2. LÓGICA DO MODAL DE IMAGEM (ZOOM)
+           ========================================= */
+        function openImageModal(imgSrc) {
+            const modal = document.getElementById('imageModal');
+            const modalImg = document.getElementById('modalImage');
+            modalImg.src = imgSrc;
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeImageModal() {
+            const modal = document.getElementById('imageModal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            document.body.style.overflow = 'auto';
+        }
+
+        /* =========================================
+           3. LÓGICA DO MODAL DO GRÁFICO DE GANTT
+           ========================================= */
+        const ganttModal = document.getElementById('actionModal');
+        const modalTitle = document.getElementById('modalTitle');
+        const modalDesc = document.getElementById('modalDesc');
+        const modalMeta = document.getElementById('modalMeta');
+
+        function openGanttModal(title, description, period) {
+            modalTitle.textContent = title;
+            modalDesc.textContent = description;
+            modalMeta.textContent = 'Período estimado: ' + period;
+            ganttModal.style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeGanttModal(event) {
+            if (event.target === ganttModal) {
+                forceCloseGanttModal();
+            }
+        }
+
+        function forceCloseGanttModal() {
+            ganttModal.style.display = 'none';
+            document.body.style.overflow = 'auto';
+        }
+
+        // Tecla ESC fecha qualquer modal ativo
+        document.addEventListener('keydown', function(event) {
+            if (event.key === "Escape") {
+                closeImageModal();
+                forceCloseGanttModal();
+            }
+        });
+    </script>
+</body>
+</html>
